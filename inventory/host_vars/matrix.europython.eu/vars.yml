@@ -1,0 +1,30 @@
+# The bare domain name which represents your Matrix identity.
+# Matrix user ids for your server will be of the form (`@user:<matrix-domain>`).
+#
+# Note: this playbook does not touch the server referenced here.
+# Installation happens on another server ("matrix.<matrix-domain>").
+#
+# If you've deployed using the wrong domain, you'll have to run the Uninstalling step,
+# because you can't change the Domain after deployment.
+#
+# Example value: example.com
+matrix_domain: europython.eu
+
+# This is something which is provided to Let's Encrypt when retrieving SSL certificates for domains.
+#
+# In case SSL renewal fails at some point, you'll also get an email notification there.
+#
+# If you decide to use another method for managing SSL certifites (different than the default Let's Encrypt),
+# you won't be required to define this variable (see `docs/configuring-playbook-ssl-certificates.md`).
+#
+# Example value: someone@example.com
+matrix_ssl_lets_encrypt_support_email: 'board@europython.eu'
+
+# The admin
+matrix_synapse_admin_enabled: true
+
+# Let's extend the synapse config to add our own custom rules.
+matrix_synapse_container_additional_volumes: [{"src": "/root/epmatrix", "dst": "{{ matrix_synapse_in_container_python_packages_path }}/epmatrix", "options": "ro"}]
+matrix_synapse_configuration_extension_yaml: |
+  third_party_event_rules:
+    module: "epmatrix.SuperRulesSet"

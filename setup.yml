@@ -7,6 +7,7 @@
     - roles/matrix-synapse/vars/workers.yml
 
   roles:
+    - europython-setup
     - matrix-awx
     - matrix-base
     - matrix-dynamic-dns
