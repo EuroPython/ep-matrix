@@ -24,7 +24,10 @@ matrix_ssl_lets_encrypt_support_email: 'board@europython.eu'
 matrix_synapse_admin_enabled: true
 
 # Let's extend the synapse config to add our own custom rules.
-matrix_synapse_container_additional_volumes: [{"src": "/root/epmatrix", "dst": "{{ matrix_synapse_in_container_python_packages_path }}/epmatrix", "options": "ro"}]
+matrix_synapse_container_additional_volumes: 
+  - src: "{{ europython_synapse_packages_volume }}"
+    dst: "{{ matrix_synapse_in_container_python_packages_path }}"
+    options: ro
 matrix_synapse_configuration_extension_yaml: |
   third_party_event_rules:
     module: "epmatrix.SuperRulesSet"

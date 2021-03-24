@@ -1,7 +1,6 @@
 ---
 - name: Install custom thrid party package for Synapse
   copy:
-    src: "{{ europython_synapse_third_party_package }}"
-    dest: "{{ europython_third_party_package_volume }}"
-
-
+    src: "files/synapse-packages"
+    dest: "{{ europython_synapse_packages_volume }}"
+    backup: yes # just in case someone edited the files directly

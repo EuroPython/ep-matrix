@@ -1,7 +1,4 @@
 ---
 
-# Location of the third party package for Synapse
-europython_synapse_third_party_package: files/epmatrix
-
-# Remote volume where to install the third party package
-europython_third_party_package_volume: /root/epmatrix
+# Remote volume where to install the Synapse packages
+europython_synapse_packages_volume: /root/matrix-synapse-packages
