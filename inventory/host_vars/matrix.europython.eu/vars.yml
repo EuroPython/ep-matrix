@@ -20,13 +20,27 @@ matrix_domain: europython.eu
 # Example value: someone@example.com
 matrix_ssl_lets_encrypt_support_email: 'board@europython.eu'
 
+# A shared secret (between Coturn and Synapse) used for authentication.
+# You can put any string here, but generating a strong one is preferred (e.g. `pwgen -s 64 1`).
+matrix_coturn_turn_static_auth_secret: "{{ secrets_matrix_coturn_turn_static_auth_secret }}"
+
+# A secret used to protect access keys issued by the server.
+# You can put any string here, but generating a strong one is preferred (e.g. `pwgen -s 64 1`).
+matrix_synapse_macaroon_secret_key: "{{ secrets_matrix_synapse_macaroon_secret_key }}"
+
+# A Postgres password to use for the superuser Postgres user (called `matrix` by default).
+#
+# The playbook creates additional Postgres users and databases (one for each enabled service)
+# using this superuser account.
+matrix_postgres_connection_password: "{{ secrets_matrix_postgres_connection_password }}"
+
 # The admin
 matrix_synapse_admin_enabled: true
 
 # Let's extend the synapse config to add our own custom rules.
 matrix_synapse_container_additional_volumes: 
-  - src: "{{ europython_synapse_packages_volume }}"
-    dst: "{{ matrix_synapse_in_container_python_packages_path }}"
+  - src: "{{ europython_synapse_packages_volume }}/epmatrix"
+    dst: "{{ matrix_synapse_in_container_python_packages_path }}/epmatrix"
     options: ro
 matrix_synapse_configuration_extension_yaml: |
   third_party_event_rules:

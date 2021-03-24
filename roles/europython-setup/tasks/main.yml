@@ -1,6 +1,12 @@
 ---
+- name: Install Matrix dependencies
+  apt:
+    name:
+      - python3-dnspython
+      - python3-distutils
+   
 - name: Install custom thrid party package for Synapse
   copy:
-    src: "files/synapse-packages"
-    dest: "{{ europython_synapse_packages_volume }}"
+    src: "files/synapse-packages/"
+    dest: "{{ europython_synapse_packages_volume }}/"
     backup: yes # just in case someone edited the files directly
