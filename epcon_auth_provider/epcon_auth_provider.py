@@ -1,4 +1,5 @@
 import logging
+import unicodedata
 
 from twisted.internet import defer, reactor
 from synapse.api.errors import HttpResponseException
@@ -6,43 +7,48 @@ from synapse.types import create_requester
 from synapse.api.constants import Membership
 from synapse.types import UserID, RoomAlias
 
-from unidecode import unidecode
 
 logger = logging.getLogger(__name__)
 
 
-# Admins are not admin of the rooms
-# What happens when a user reassign the ticket ?
-# If you don't have a ticket auth is not allowed. (we should show a nice message)
-# What happen when you have a google
-
-
-
 DEFAULT_ROOMS = [
-    # (#<room>_name:neotrantor.lan, public (true/false)
-    ("#info-desk:neotrantor.lan", True),
-    ("#announcements:neotrantor.lan", True), # public??
-    ("#hallway:neotrantor.lan", False),
-    ("#staff:neotrantor.lan", False),
-    ("#speakers:neotrantor.lan", False),
-    ("#coc:neotrantor.lan", False),
-    ("#track1:neotrantor.lan", False),
-    ("#track2:neotrantor.lan", False),
-    ("#track3:neotrantor.lan", False),
-    ("#track4:neotrantor.lan", False),
-    ("#sprints:neotrantor.lan", True),
+    # (#<room>_name:europython.eu, public (true/false)
+    ("#info-desk:europython.eu", True),
+    ("#hallway:europython.eu", False),
+    ("#announcements:europython.eu", True),
+    ("#staff:europython.eu", False),
+    ("#speakers:europython.eu", False),
+    ("#coc:europython.eu", False),
+    ("#track1:europython.eu", False),
+    ("#track2:europython.eu", False),
+    ("#track3:europython.eu", False),
+    ("#track4:europython.eu", False),
+    ("#sprints:europython.eu", True),
 ]
 
-JOIN_DEFAULT = ["#info-desk:neotrantor.lan", "#sprints:neotrantor.lan", "#coc:neotrantor.lan"]
+JOIN_DEFAULT = ["#info-desk:europython.eu", "#sprints:europython.eu", "#coc:europython.eu"]
 
-JOIN_CONFERENCE = ["#track1:neotrantor.lan",
-                   "#track2:neotrantor.lan",
-                   "#track3:neotrantor.lan",
-                   "#track4:neotrantor.lan",
-                   "#hallway:neotrantor.lan"
+JOIN_CONFERENCE = ["#track1:europython.eu",
+                   "#track2:europython.eu",
+                   "#track3:europython.eu",
+                   "#track4:europython.eu",
+                   "#hallway:europython.eu"
                    ]
-JOIN_SPEAKER = ["#speakers:neotrantor.lan"]
-JOIN_STAFF = ["#staff:neotrantor.lan"]
+JOIN_SPEAKER = ["#speakers:europython.eu"]
+JOIN_STAFF = ["#staff:europython.eu"]
+
+
+def strip_accents(text):
+
+    try:
+        text = unicode(text, 'utf-8')
+    except NameError: # unicode is a default on python 3
+        pass
+
+    text = unicodedata.normalize('NFD', text)\
+           .encode('ascii', 'ignore')\
+           .decode("utf-8")
+    return str(text)
 
 
 def get_rooms_for_user(epcon_data):
@@ -141,7 +147,6 @@ class EpconAuthProvider:
         logger.info("going to check auth for %s", address)
 
         epcon_data = await self.auth_with_epcon(address, password)
-        # if no tickets, return False
 
         if not epcon_data:
             logger.info("Auth failed for %s", address)
@@ -193,7 +198,7 @@ class EpconAuthProvider:
         first_name = epcon_data["first_name"]
         last_name = epcon_data["last_name"]
         username = epcon_data["username"]
-        return unidecode(f"{first_name}.{last_name}.{username}".lower())
+        return strip_accents(f"{first_name}.{last_name}.{username}".lower())
 
     async def _get_or_create_userid(self, epcon_data):
         localpart = self.get_local_part(epcon_data)
