@@ -10,32 +10,33 @@ from synapse.types import UserID, RoomAlias
 
 logger = logging.getLogger(__name__)
 
+HOMESERVER_NAME= "europython.eu"
 
 DEFAULT_ROOMS = [
     # (#<room>_name:europython.eu, public (true/false)
-    ("#info-desk:europython.eu", True),
-    ("#hallway:europython.eu", False),
-    ("#announcements:europython.eu", True),
-    ("#staff:europython.eu", False),
-    ("#speakers:europython.eu", False),
-    ("#coc:europython.eu", False),
-    ("#track1:europython.eu", False),
-    ("#track2:europython.eu", False),
-    ("#track3:europython.eu", False),
-    ("#track4:europython.eu", False),
-    ("#sprints:europython.eu", True),
+    ("#info-desk:{}".format(HOMESERVER_NAME), True),
+    ("#hallway:{}".format(HOMESERVER_NAME), False),
+    ("#announcements:{}".format(HOMESERVER_NAME), True),
+    ("#staff:{}".format(HOMESERVER_NAME), False),
+    ("#speakers:{}".format(HOMESERVER_NAME), False),
+    ("#coc:{}".format(HOMESERVER_NAME), False),
+    ("#track1:{}".format(HOMESERVER_NAME), False),
+    ("#track2:{}".format(HOMESERVER_NAME), False),
+    ("#track3:{}".format(HOMESERVER_NAME), False),
+    ("#track4:{}".format(HOMESERVER_NAME), False),
+    ("#sprints:{}".format(HOMESERVER_NAME), True),
 ]
 
-JOIN_DEFAULT = ["#info-desk:europython.eu", "#sprints:europython.eu", "#coc:europython.eu"]
+JOIN_DEFAULT = ["#info-desk:{}".format(HOMESERVER_NAME), "#sprints:{}".format(HOMESERVER_NAME), "#coc:{}".format(HOMESERVER_NAME)]
 
-JOIN_CONFERENCE = ["#track1:europython.eu",
-                   "#track2:europython.eu",
-                   "#track3:europython.eu",
-                   "#track4:europython.eu",
-                   "#hallway:europython.eu"
+JOIN_CONFERENCE = ["#track1:{}".format(HOMESERVER_NAME),
+                   "#track2:{}".format(HOMESERVER_NAME),
+                   "#track3:{}".format(HOMESERVER_NAME),
+                   "#track4:{}".format(HOMESERVER_NAME),
+                   "#hallway:{}".format(HOMESERVER_NAME)
                    ]
-JOIN_SPEAKER = ["#speakers:europython.eu"]
-JOIN_STAFF = ["#staff:europython.eu"]
+JOIN_SPEAKER = ["#speakers:{}".format(HOMESERVER_NAME)]
+JOIN_STAFF = ["#staff:{}".format(HOMESERVER_NAME)]
 
 
 def strip_accents(text):
