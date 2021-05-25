@@ -154,6 +154,15 @@ class EpconAuthProvider:
             return None
         logger.info("%s successfully authenticated with epcon. profile: %s", address, epcon_data)
 
+        # If no tickets found inside epcon_data return false.
+        tickets = epcon_data.get("tickets", None)
+        if not tickets:
+            logger.info("Auth failed for %s - no tickets found", address)
+            # Here we could send a json in order to override the error_message.
+            # for example
+            # return json.dumps({"errcode": "M_NO_TICKET_FOUND", "error": "Custom response for user"})
+            return False
+
         user_id = await self._get_or_create_userid(epcon_data)
         try:
             await self._apply_user_policies(user_id, epcon_data)
