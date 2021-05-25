@@ -159,7 +159,7 @@ class EpconAuthProvider:
             await self._apply_user_policies(user_id, epcon_data)
         except Exception as e:
             logger.error("Error joining rooms :%r", e)
-        logger.info("User registered. address: '%s' user_id: '%s'", user_id, address)
+        logger.info("User registered. address: '%s' user_id: '%s'", address, user_id)
         return user_id
 
     async def _apply_user_policies(self, user_id, epcon_data):
