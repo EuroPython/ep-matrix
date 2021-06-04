@@ -2,7 +2,7 @@ import logging
 import unicodedata
 
 from twisted.internet import defer, reactor
-from synapse.api.errors import HttpResponseException
+from synapse.api.errors import HttpResponseException, SynapseError
 from synapse.types import create_requester
 from synapse.api.constants import Membership
 from synapse.types import UserID, RoomAlias
@@ -158,10 +158,7 @@ class EpconAuthProvider:
         tickets = epcon_data.get("tickets", None)
         if not tickets:
             logger.info("Auth failed for %s - no tickets found", address)
-            # Here we could send a json in order to override the error_message.
-            # for example
-            # return json.dumps({"errcode": "M_NO_TICKET_FOUND", "error": "Custom response for user"})
-            return False
+            raise SynapseError(code=400, errcode="no_tickets_found", msg='Login failed: No tickets found for user.')
 
         user_id = await self._get_or_create_userid(epcon_data)
         try:
