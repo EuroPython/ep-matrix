@@ -1,7 +1,8 @@
 import logging
+import bcrypt
 import unicodedata
 
-from twisted.internet import defer, reactor
+from twisted.internet import defer
 from synapse.api.errors import HttpResponseException, SynapseError
 from synapse.types import create_requester
 from synapse.api.constants import Membership
@@ -10,7 +11,7 @@ from synapse.types import UserID, RoomAlias
 
 logger = logging.getLogger(__name__)
 
-HOMESERVER_NAME= "europython.eu"
+HOMESERVER_NAME = "fraserver"
 
 DEFAULT_ROOMS = [
     # (#<room>_name:europython.eu, public (true/false)
@@ -27,7 +28,11 @@ DEFAULT_ROOMS = [
     ("#sprints:{}".format(HOMESERVER_NAME), True),
 ]
 
-JOIN_DEFAULT = ["#info-desk:{}".format(HOMESERVER_NAME), "#sprints:{}".format(HOMESERVER_NAME), "#coc:{}".format(HOMESERVER_NAME)]
+JOIN_DEFAULT = [
+    "#info-desk:{}".format(HOMESERVER_NAME),
+    "#sprints:{}".format(HOMESERVER_NAME),
+    "#coc:{}".format(HOMESERVER_NAME)
+]
 
 JOIN_CONFERENCE = ["#track1:{}".format(HOMESERVER_NAME),
                    "#track2:{}".format(HOMESERVER_NAME),
@@ -43,12 +48,12 @@ def strip_accents(text):
 
     try:
         text = unicode(text, 'utf-8')
-    except NameError: # unicode is a default on python 3
+    except NameError:                       # unicode is a default on python 3
         pass
 
-    text = unicodedata.normalize('NFD', text)\
-           .encode('ascii', 'ignore')\
-           .decode("utf-8")
+    text = unicodedata.normalize('NFD', text) \
+        .encode('ascii', 'ignore') \
+        .decode("utf-8")
     return str(text)
 
 
@@ -60,7 +65,8 @@ def get_rooms_for_user(epcon_data):
         rooms_to_join.extend(JOIN_SPEAKER)
     for ticket in epcon_data["tickets"]:
         # just in case we have an user with more than one ticket
-        # in particular combined and a separated one for sprints or live stream.
+        # in particular combined and a separated one for sprints or live
+        # stream.
         fare_code = ticket["fare_code"]
         if fare_code in ["TRPC", "TRPP"]:
             # sprinters. only default ticket
@@ -73,31 +79,32 @@ def get_rooms_for_user(epcon_data):
 
 
 class EpconAuthProvider:
-
     def __init__(self, config, account_handler):
-            self.account_handler = account_handler
-            self._hs = account_handler._hs
-            self.http_client = account_handler._http_client
-            self.store = self._hs.get_datastore()
+        self.account_handler = account_handler
+        self._hs = account_handler._hs
+        self.http_client = account_handler._http_client
+        self.store = self._hs.get_datastore()
+        self.bcrypt_rounds = self._hs.config.bcrypt_rounds
 
-            if not config.endpoint:
-                raise RuntimeError('Missing endpoint config')
+        if not config.endpoint:
+            raise RuntimeError('Missing endpoint config')
 
-            self.endpoint = config.endpoint
-            self.admin_user = config.admin_user
-            self.config = config
-            logger.info('Endpoint: %s', self.endpoint)
+        self.endpoint = config.endpoint
+        self.admin_user = config.admin_user
+        self.config = config
+        logger.info('Endpoint: %s', self.endpoint)
 
     async def create_epcon_rooms(self):
         # fixme: move it to a different script.
 
         if not await self.account_handler.check_user_exists(self.admin_user):
-            logger.info("Not creating default rooms as %s doesn't exists", self.admin_user)
+            logger.info("Not creating default rooms as %s doesn't exists",
+                        self.admin_user)
             return
 
         logger.info("Attempt to create default rooms for EuroPython")
         room_creation_handler = self._hs.get_room_creation_handler()
-        requester = create_requester(self.admin_user)
+        create_requester(self.admin_user)
         for room_alias_name, public in DEFAULT_ROOMS:
             logger.info("Creating %s", room_alias_name)
             try:
@@ -113,8 +120,8 @@ class EpconAuthProvider:
                     ratelimit=False,
                 )
             except Exception as e:
-                logger.error("Failed to create default channel %r: %r", room_alias_name, e)
-
+                logger.error("Failed to create default channel %r: %r",
+                             room_alias_name, e)
 
     @staticmethod
     def parse_config(config):
@@ -126,8 +133,6 @@ class EpconAuthProvider:
         rest_config = _RestConfig()
         rest_config.endpoint = config["endpoint"]
         rest_config.admin_user = config["admin_user"]
-
-
         return rest_config
 
     async def check_3pid_auth(self, medium, address, password):
@@ -138,34 +143,39 @@ class EpconAuthProvider:
             address (str): Address of the 3PID (e.g bob@example.com for email).
             password (str): The provided password of the user.
 
-         Returns:
-             user_id (str|None): ID of the user if authentication successful. None otherwise.
-         """
-         # Only e-mail supported email
+        Returns:
+             user_id (str|None): ID of the user if authentication successful.
+             None otherwise.
+        """
+        # Only e-mail supported email
         if medium != "email":
-            logger.debug("Not going to auth medium: %s, address: %s", medium, address)
+            logger.debug("Not going to auth medium: %s, address: %s",
+                         medium, address)
             return None
+
         logger.info("going to check auth for %s", address)
 
         epcon_data = await self.auth_with_epcon(address, password)
-
         if not epcon_data:
             logger.info("Auth failed for %s", address)
             return None
-        logger.info("%s successfully authenticated with epcon. profile: %s", address, epcon_data)
+        logger.info("%s successfully authenticated with epcon. profile: %s",
+                    address, epcon_data)
 
         # If no tickets found inside epcon_data return false.
         tickets = epcon_data.get("tickets", None)
         if not tickets:
             logger.info("Auth failed for %s - no tickets found", address)
-            raise SynapseError(code=400, errcode="no_tickets_found", msg='Login failed: No tickets found for user.')
+            raise SynapseError(code=400, errcode="no_tickets_found",
+                               msg='Login failed: No tickets found for user.')
 
-        user_id = await self._get_or_create_userid(epcon_data)
+        user_id = await self._get_or_create_userid(epcon_data, password)
         try:
             await self._apply_user_policies(user_id, epcon_data)
         except Exception as e:
             logger.error("Error joining rooms :%r", e)
-        logger.info("User registered. address: '%s' user_id: '%s'", address, user_id)
+        logger.info("User registered. address: '%s' user_id: '%s'",
+                    address, user_id)
         return user_id
 
     async def _apply_user_policies(self, user_id, epcon_data):
@@ -178,28 +188,35 @@ class EpconAuthProvider:
 
         for room_alias in rooms_to_join:
             try:
-                room_id, _ = await room_hanlder.lookup_room_alias(RoomAlias.from_string(room_alias))
-                logger.info("room_id for room_alias '%s' is: '%s'", room_alias, room_id)
+                room_id, _ = await room_hanlder.lookup_room_alias(
+                    RoomAlias.from_string(room_alias)
+                )
+                logger.info("room_id for room_alias '%s' is: '%s'",
+                            room_alias, room_id)
                 if room_id.to_string() in room_ids:
-                    logger.info("%s is already a member of %s", user_id, room_alias)
+                    logger.info("%s is already a member of %s",
+                                user_id, room_alias)
                     continue
                 logger.info("Adding %s to room: %s", user_id, room_alias)
-                await room_hanlder.update_membership(requester=create_requester(self.admin_user),
-                                               target=UserID.from_string(user_id),
-                                               room_id=room_id.to_string(),
-                                               action=Membership.INVITE,
-                                               ratelimit=False,
-                                                     )
+                await room_hanlder.update_membership(
+                    requester=create_requester(self.admin_user),
+                    target=UserID.from_string(user_id),
+                    room_id=room_id.to_string(),
+                    action=Membership.INVITE,
+                    ratelimit=False,
+                )
                 # force join
                 room_hanlder = self._hs.get_room_member_handler()
-                await room_hanlder.update_membership(requester=create_requester(user_id),
-                                               target=UserID.from_string(user_id),
-                                               room_id=room_id.to_string(),
-                                               action=Membership.JOIN,
-                                               ratelimit=False,
-                                               )
+                await room_hanlder.update_membership(
+                    requester=create_requester(user_id),
+                    target=UserID.from_string(user_id),
+                    room_id=room_id.to_string(),
+                    action=Membership.JOIN,
+                    ratelimit=False,
+                )
             except Exception as e:
-                logger.error("Eror adding %s to %s: %r", user_id, room_alias, e)
+                logger.error("Eror adding %s to %s: %r",
+                             user_id, room_alias, e)
 
     def get_local_part(self, epcon_data):
         first_name = epcon_data["first_name"]
@@ -207,17 +224,28 @@ class EpconAuthProvider:
         username = epcon_data["username"]
         return strip_accents(f"{first_name}.{last_name}.{username}".lower())
 
-    async def _get_or_create_userid(self, epcon_data):
+    async def _get_or_create_userid(self, epcon_data, password):
         localpart = self.get_local_part(epcon_data)
         user_id = self.account_handler.get_qualified_user_id(localpart)
         if await self.account_handler.check_user_exists(user_id):
-            logger.info("User already exists in Matrix. email: %s", epcon_data["email"])
+            logger.info("User already exists in Matrix. email: %s",
+                        epcon_data["email"])
             # exists, authentication complete
             return user_id
         logger.info("User %s is new. Registering in Matrix", localpart)
 
         # register a new user
-        user_id = await self.register_user(epcon_data)
+        name = f'{epcon_data["first_name"]} {epcon_data["last_name"]}'
+        user_id = await self.register_user(
+            localpart=localpart,
+            displayname=name,
+            emails=[epcon_data['email']],
+            password=password,
+            admin=epcon_data['is_staff']
+        )
+        device_id, access_token = await self.account_handler.register_device(
+            user_id
+        )
         return user_id
 
     async def auth_with_epcon(self, email, password):
@@ -232,17 +260,26 @@ class EpconAuthProvider:
             return False
         return result
 
-    def register_user(self, epcon_data):
-        localpart = self.get_local_part(epcon_data)
+    def register_user(self, localpart, displayname, emails, password, admin):
+        def _do_hash():
+            # Normalise the Unicode in the password
+            pw = unicodedata.normalize("NFKC", password)
+
+            return bcrypt.hashpw(
+                pw.encode("utf8") +
+                self._hs.config.password_pepper.encode("utf8"),
+                bcrypt.gensalt(self.bcrypt_rounds),
+            ).decode("ascii")
+
         return defer.ensureDeferred(
             self._hs.get_registration_handler().register_user(
                 localpart=localpart,
-                default_display_name=f'{epcon_data["first_name"]} {epcon_data["last_name"]}',
-                bind_emails=[epcon_data["email"]],
-                admin=epcon_data["is_staff"]
+                password_hash=_do_hash(),
+                default_display_name=displayname,
+                bind_emails=emails or [],
+                admin=admin
             )
         )
-
 
 
 def _require_keys(config, required):
