@@ -11,7 +11,8 @@ from synapse.types import UserID, RoomAlias
 
 logger = logging.getLogger(__name__)
 
-HOMESERVER_NAME = "fraserver"
+# FIXME get this from the config file
+HOMESERVER_NAME = "europython.eu"
 
 DEFAULT_ROOMS = [
     # (#<room>_name:europython.eu, public (true/false)
