@@ -1,0 +1,7 @@
+---
+
+- import_tasks: "{{ role_path }}/tasks/ext/epcon-auth/setup_install.yml"
+  when: matrix_synapse_ext_password_provider_epcon_auth_enabled|bool
+
+- import_tasks: "{{ role_path }}/tasks/ext/epcon-auth/setup_uninstall.yml"
+  when: not matrix_synapse_ext_password_provider_epcon_auth_enabled|bool

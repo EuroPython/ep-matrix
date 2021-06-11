@@ -1,0 +1,33 @@
+---
+
+- name: Fail if EPCON Auth endpoint not configured
+  fail:
+    msg: "You have enabled the EPCON Auth password provider, but have not configured its endpoint in the `matrix_synapse_ext_password_provider_epcon_auth_endpoint` variable. Consult the documentation."
+  when: "matrix_synapse_ext_password_provider_epcon_auth_endpoint == ''"
+
+- name: Fail if EPCON Auth admin_user not configured
+  fail:
+    msg: "You have enabled the EPCON Auth password provider, but have not configured its admin_user in the `matrix_synapse_ext_password_provider_epcon_auth_admin_user` variable. Consult the documentation."
+  when: "matrix_synapse_ext_password_provider_epcon_auth_admin_user == ''"
+
+- name: Download matrix-synapse-epcon-auth
+  get_url:
+    url: "{{ matrix_synapse_ext_password_provider_epcon_auth_download_url }}"
+    dest: "{{ matrix_synapse_ext_path }}/epcon_auth_provider.py"
+    force: true
+    mode: 0440
+    owner: "{{ matrix_user_username }}"
+    group: "{{ matrix_user_groupname }}"
+
+- set_fact:
+    matrix_synapse_password_providers_enabled: true
+
+    matrix_synapse_container_extra_arguments: >
+      {{ matrix_synapse_container_extra_arguments|default([]) }}
+      +
+      ["--mount type=bind,src={{ matrix_synapse_ext_path }}/epcon_auth_provider.py,dst={{ matrix_synapse_in_container_python_packages_path }}/epcon_auth_provider.py,ro"]
+
+    matrix_synapse_additional_loggers: >
+      {{ matrix_synapse_additional_loggers }}
+      +
+      {{ [{'name': 'epcon_auth_provider', 'level': 'INFO'}] }}

@@ -2579,6 +2579,12 @@ password_providers:
       bind_password: {{ matrix_synapse_ext_password_provider_ldap_bind_password|string|to_json }}
       filter: {{ matrix_synapse_ext_password_provider_ldap_filter|string|to_json }}
 {% endif %}
+{% if matrix_synapse_ext_password_provider_epcon_auth_enabled %}
+  - module: "epcon_auth_provider.EpconAuthProvider"
+    config:
+      endpoint: {{ matrix_synapse_ext_password_provider_epcon_auth_endpoint|string|to_json }}
+      admin_user: {{ matrix_synapse_ext_password_provider_epcon_auth_admin_user|string|to_json }}
+{% endif %}
 {% endif %}
 
 

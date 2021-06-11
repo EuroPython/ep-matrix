@@ -1,0 +1,6 @@
+---
+
+- name: Ensure matrix-synapse-epcon-auth doesn't exist
+  file:
+    path: "{{ matrix_synapse_ext_path }}/epcon_auth_provider.py"
+    state: absent
