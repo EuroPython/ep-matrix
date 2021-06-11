@@ -34,6 +34,8 @@ matrix_synapse_macaroon_secret_key: "{{ secrets_matrix_synapse_macaroon_secret_k
 # using this superuser account.
 matrix_postgres_connection_password: "{{ secrets_matrix_postgres_connection_password }}"
 
+matrix_synapse_federation_enabled: false
+
 # The admin
 matrix_synapse_admin_enabled: true
 
@@ -41,6 +43,27 @@ matrix_synapse_admin_enabled: true
 matrix_synapse_ext_password_provider_epcon_auth_enabled: true
 matrix_synapse_ext_password_provider_epcon_auth_endpoint: 'https://epstage.europython.eu/api/v1/isauth/'
 matrix_synapse_ext_password_provider_epcon_auth_admin_user: '@fp39304:europython.eu'
+
+# Not sure why we need these rate limiters...
+matrix_synapse_rc_joins:
+  local:
+    per_second: 0.001
+    burst_count: 30
+
+# Emable our Matrix Dimension Integration server
+matrix_dimension_enabled: true
+matrix_dimension_access_token: "{{ secrets_matrix_dimension_access_token }}"
+matrix_dimension_admins:
+  - "@fp39304:europython.eu" 
+  # - "@malemburg:europython.eu"
+  # - "@mc56315:europython.eu" 
+  # - "@ladybiss:europython.eu" 
+  # - "@sm6xmm:europython.eu" 
+  # - "@ch34964:europython.eu" 
+  # - "@85054441ee:europython.eu"
+
+# custom Europython element client.
+matrix_client_element_docker_image: "europython/europython-element-web"
 
 # Let's extend the synapse config to add our own custom rules.
 matrix_synapse_container_additional_volumes: 
