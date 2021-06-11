@@ -17,11 +17,10 @@ matrix_grafana_anonymous_access: false
 
 # This has no relation to your Matrix user id. It can be any username you'd like.
 # Changing the username subsequently won't work.
-matrix_grafana_default_admin_user: some_username_chosen_by_you
+matrix_grafana_default_admin_user: "some_username_chosen_by_you"
 
-# Passwords containing special characters may be troublesome.
 # Changing the password subsequently won't work.
-matrix_grafana_default_admin_password: some_strong_password_chosen_by_you
+matrix_grafana_default_admin_password: "some_strong_password_chosen_by_you"
 ```
 
 By default, a [Grafana](https://grafana.com/) web user-interface will be available at `https://stats.<your-domain>`.
@@ -57,6 +56,7 @@ Name | Description
 `matrix_nginx_proxy_proxy_synapse_metrics`|Set this to `true` to make matrix-nginx-proxy expose the Synapse metrics at `https://matrix.DOMAIN/_synapse/metrics`
 `matrix_nginx_proxy_proxy_synapse_metrics_basic_auth_enabled`|Set this to `true` to password-protect (using HTTP Basic Auth) `https://matrix.DOMAIN/_synapse/metrics` (the username is always `prometheus`, the password is defined in `matrix_nginx_proxy_proxy_synapse_metrics_basic_auth_key`)
 `matrix_nginx_proxy_proxy_synapse_metrics_basic_auth_key`|Set this to a password to use for HTTP Basic Auth for protecting `https://matrix.DOMAIN/_synapse/metrics` (the username is always `prometheus` - it's not configurable)
+`matrix_server_fqn_grafana`|Use this variable to override the domain at which the Grafana web user-interface is at (defaults to `stats.DOMAIN`).
 
 
 ## More information

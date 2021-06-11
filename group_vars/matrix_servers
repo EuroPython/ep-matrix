@@ -9,6 +9,7 @@
 # You can also override ANY variable (seen here or in any given role),
 # by re-defining it in your own configuration file (`inventory/host_vars/matrix.<your-domain>`).
 
+matrix_container_global_registry_prefix: "docker.io/"
 
 ######################################################################
 #
@@ -63,7 +64,7 @@ matrix_appservice_discord_enabled: false
 matrix_appservice_discord_container_http_host_bind_port: "{{ '' if matrix_nginx_proxy_enabled else '127.0.0.1:9005' }}"
 
 # If the homeserver disables presence, it's likely better (less wasteful) to also disable presence on the bridge side.
-matrix_appservice_discord_bridge_disablePresence: "{{ matrix_synapse_use_presence }}"
+matrix_appservice_discord_bridge_disablePresence: "{{ not matrix_synapse_presence_enabled }}"
 
 matrix_appservice_discord_systemd_required_services_list: |
   {{
@@ -187,7 +188,7 @@ matrix_appservice_irc_container_http_host_bind_port: "{{ '' if matrix_nginx_prox
 
 # The IRC bridge docs say that if homeserver presence is disabled, it's better to also disable
 # IRC bridge presence, for performance reasons.
-matrix_appservice_irc_homeserver_enablePresence: "{{ matrix_synapse_use_presence }}"
+matrix_appservice_irc_homeserver_enablePresence: "{{ matrix_synapse_presence_enabled }}"
 
 matrix_appservice_irc_systemd_required_services_list: |
   {{
@@ -241,7 +242,7 @@ matrix_mautrix_facebook_homeserver_token: "{{ matrix_synapse_macaroon_secret_key
 
 matrix_mautrix_facebook_login_shared_secret: "{{ matrix_synapse_ext_password_provider_shared_secret_auth_shared_secret if matrix_synapse_ext_password_provider_shared_secret_auth_enabled else '' }}"
 
-matrix_mautrix_facebook_bridge_presence: "{{ matrix_synapse_use_presence if matrix_synapse_enabled else true }}"
+matrix_mautrix_facebook_bridge_presence: "{{ matrix_synapse_presence_enabled if matrix_synapse_enabled else true }}"
 
 # We'd like to force-set people with external Postgres to SQLite, so the bridge role can complain
 # and point them to a migration path.
@@ -324,7 +325,7 @@ matrix_mautrix_instagram_homeserver_token: "{{ matrix_synapse_macaroon_secret_ke
 
 matrix_mautrix_instagram_login_shared_secret: "{{ matrix_synapse_ext_password_provider_shared_secret_auth_shared_secret if matrix_synapse_ext_password_provider_shared_secret_auth_enabled else '' }}"
 
-matrix_mautrix_instagram_bridge_presence: "{{ matrix_synapse_use_presence if matrix_synapse_enabled else true }}"
+matrix_mautrix_instagram_bridge_presence: "{{ matrix_synapse_presence_enabled if matrix_synapse_enabled else true }}"
 
 # We'd like to force-set people with external Postgres to SQLite, so the bridge role can complain
 # and point them to a migration path.
@@ -484,6 +485,32 @@ matrix_sms_bridge_homeserver_token: "{{ matrix_synapse_macaroon_secret_key | pas
 ######################################################################
 #
 # /matrix-sms-bridge
+#
+######################################################################
+
+######################################################################
+#
+# matrix-bridge-heisenbridge
+#
+######################################################################
+
+# We don't enable bridges by default.
+matrix_heisenbridge_enabled: false
+
+matrix_heisenbridge_appservice_token: "{{ matrix_synapse_macaroon_secret_key | password_hash('sha512', 'heisen.as.tok') | to_uuid }}"
+
+matrix_heisenbridge_homeserver_token: "{{ matrix_synapse_macaroon_secret_key | password_hash('sha512', 'heisen.hs.tok') | to_uuid }}"
+
+matrix_heisenbridge_systemd_wanted_services_list: |
+  {{
+    (['matrix-synapse.service'] if matrix_synapse_enabled else [])
+    +
+    (['matrix-nginx-proxy.service'] if matrix_nginx_proxy_enabled else [])
+  }}
+
+######################################################################
+#
+# /matrix-bridge-heisenbridge
 #
 ######################################################################
 
@@ -817,6 +844,33 @@ matrix_bot_go_neb_container_http_host_bind_port: "{{ '' if matrix_nginx_proxy_en
 
 ######################################################################
 #
+# matrix-bot-mjolnir
+#
+######################################################################
+
+# We don't enable bots by default.
+matrix_bot_mjolnir_enabled: false
+
+matrix_bot_mjolnir_systemd_required_services_list: |
+  {{
+    ['docker.service']
+    +
+    (['matrix-synapse.service'] if matrix_synapse_enabled else [])
+    +
+    (['matrix-postgres.service'] if matrix_postgres_enabled else [])
+    +
+    (['matrix-nginx-proxy.service'] if matrix_nginx_proxy_enabled else [])
+  }}
+
+######################################################################
+#
+# /matrix-bot-mjolnir
+#
+######################################################################
+
+
+######################################################################
+#
 # matrix-corporal
 #
 ######################################################################
@@ -911,6 +965,10 @@ matrix_dimension_systemd_required_services_list: |
     ['docker.service']
     +
     (['matrix-postgres.service'] if matrix_postgres_enabled else [])
+    +
+    (['matrix-synapse.service'] if matrix_synapse_enabled else [])
+    +
+    (['matrix-nginx-proxy.service'] if matrix_nginx_proxy_enabled else [])
   }}
 
 # Postgres is the default, except if not using `matrix_postgres` (internal postgres)
@@ -994,6 +1052,8 @@ matrix_jitsi_enabled: false
 matrix_jitsi_web_container_http_host_bind_port: "{{ '' if matrix_nginx_proxy_enabled else '127.0.0.1:13080' }}"
 
 matrix_jitsi_jvb_container_colibri_ws_host_bind_port: "{{ '' if matrix_nginx_proxy_enabled else '127.0.0.1:13090' }}"
+
+matrix_jitsi_prosody_container_http_host_bind_port: "{{ '' if matrix_nginx_proxy_enabled else '127.0.0.1:5280' }}"
 
 matrix_jitsi_jibri_xmpp_password: "{{ matrix_synapse_macaroon_secret_key | password_hash('sha512', 'jibri') | to_uuid }}"
 matrix_jitsi_jicofo_auth_password: "{{ matrix_synapse_macaroon_secret_key | password_hash('sha512', 'jicofo') | to_uuid }}"
@@ -1081,7 +1141,9 @@ matrix_ma1sd_synapsesql_connection: //{{ matrix_synapse_database_host }}/{{ matr
 
 matrix_ma1sd_dns_overwrite_enabled: true
 matrix_ma1sd_dns_overwrite_homeserver_client_name: "{{ matrix_server_fqn_matrix }}"
-matrix_ma1sd_dns_overwrite_homeserver_client_value: "http://{{ matrix_nginx_proxy_proxy_matrix_client_api_addr_with_container }}"
+# The `matrix_ma1sd_dns_overwrite_homeserver_client_value` value when matrix_nginx_proxy_enabled is false covers the general case,
+# but may be inaccurate if matrix-corporal is enabled.
+matrix_ma1sd_dns_overwrite_homeserver_client_value: "{{ ('http://' + matrix_nginx_proxy_proxy_matrix_client_api_addr_with_container) if matrix_nginx_proxy_enabled else matrix_homeserver_container_url }}"
 
 # By default, we send mail through the `matrix-mailer` service.
 matrix_ma1sd_threepid_medium_email_identity_from: "{{ matrix_mailer_sender_address }}"
@@ -1138,6 +1200,7 @@ matrix_nginx_proxy_proxy_matrix_client_redirect_root_uri_to_domain: "{{ matrix_s
 
 matrix_nginx_proxy_proxy_matrix_enabled: true
 matrix_nginx_proxy_proxy_element_enabled: "{{ matrix_client_element_enabled }}"
+matrix_nginx_proxy_proxy_hydrogen_enabled: "{{ matrix_client_hydrogen_enabled }}"
 matrix_nginx_proxy_proxy_dimension_enabled: "{{ matrix_dimension_enabled }}"
 matrix_nginx_proxy_proxy_bot_go_neb_enabled: "{{ matrix_bot_go_neb_enabled }}"
 matrix_nginx_proxy_proxy_jitsi_enabled: "{{ matrix_jitsi_enabled }}"
@@ -1179,7 +1242,12 @@ matrix_nginx_proxy_proxy_matrix_user_directory_search_addr_sans_container: "{{ m
 
 matrix_nginx_proxy_self_check_validate_certificates: "{{ false if matrix_ssl_retrieval_method == 'self-signed' else true }}"
 
-matrix_nginx_proxy_synapse_presence_disabled: "{{ not matrix_synapse_use_presence }}"
+# OCSP stapling does not make sense when self-signed certificates are used.
+# See https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/1073
+# and https://github.com/spantaleev/matrix-docker-ansible-deploy/pull/1074
+matrix_nginx_proxy_ocsp_stapling_enabled: "{{ matrix_ssl_retrieval_method != 'self-signed' }}"
+
+matrix_nginx_proxy_synapse_presence_disabled: "{{ not matrix_synapse_presence_enabled }}"
 
 matrix_nginx_proxy_synapse_workers_enabled: "{{ matrix_synapse_workers_enabled }}"
 matrix_nginx_proxy_synapse_workers_list: "{{ matrix_synapse_workers_enabled_list }}"
@@ -1191,7 +1259,7 @@ matrix_nginx_proxy_synapse_frontend_proxy_locations: "{{ matrix_synapse_workers
 
 matrix_nginx_proxy_systemd_wanted_services_list: |
   {{
-    (['matrix-synapse.service'])
+    (['matrix-synapse.service'] if matrix_synapse_enabled else [])
     +
     (['matrix-corporal.service'] if matrix_corporal_enabled else [])
     +
@@ -1207,6 +1275,8 @@ matrix_ssl_domains_to_obtain_certificates_for: |
     ([matrix_server_fqn_element] if matrix_client_element_enabled else [])
     +
     ([matrix_nginx_proxy_proxy_riot_compat_redirect_hostname] if matrix_nginx_proxy_proxy_riot_compat_redirect_enabled else [])
+    +
+    ([matrix_server_fqn_hydrogen] if matrix_client_hydrogen_enabled else [])
     +
     ([matrix_server_fqn_dimension] if matrix_dimension_enabled else [])
     +
@@ -1396,6 +1466,13 @@ matrix_postgres_additional_databases: |
       'username': matrix_sygnal_database_username,
       'password': matrix_sygnal_database_password,
     }] if (matrix_sygnal_enabled and matrix_sygnal_database_engine == 'postgres' and matrix_sygnal_database_hostname == 'matrix-postgres') else [])
+     +
+    ([{
+      'name': matrix_prometheus_postgres_exporter_database_name,
+      'username': matrix_prometheus_postgres_exporter_database_username,
+      'password': matrix_prometheus_postgres_exporter_database_password,
+    }] if (matrix_prometheus_postgres_exporter_enabled and matrix_prometheus_postgres_exporter_database_hostname == 'matrix-postgres') else [])
+   
    }}
 
 matrix_postgres_import_roles_to_ignore: |
@@ -1495,7 +1572,7 @@ matrix_client_element_registration_enabled: "{{ matrix_synapse_enable_registrati
 matrix_client_element_enable_presence_by_hs_url: |
   {{
     none
-    if matrix_synapse_use_presence
+    if matrix_synapse_presence_enabled
     else {matrix_client_element_default_hs_url: false}
   }}
 
@@ -1506,6 +1583,31 @@ matrix_client_element_jitsi_preferredDomain: "{{ matrix_server_fqn_jitsi if matr
 ######################################################################
 #
 # /matrix-client-element
+#
+######################################################################
+
+
+
+######################################################################
+#
+# matrix-client-hydrogen
+#
+######################################################################
+
+matrix_client_hydrogen_enabled: false
+
+# Normally, matrix-nginx-proxy is enabled and nginx can reach Hydrogen over the container network.
+# If matrix-nginx-proxy is not enabled, or you otherwise have a need for it, you can expose
+# the HTTP port to the local host.
+matrix_client_hydrogen_container_http_host_bind_port: "{{ '' if matrix_nginx_proxy_enabled else '127.0.0.1:8768' }}"
+
+matrix_client_hydrogen_default_hs_url: "{{ matrix_homeserver_url }}"
+
+matrix_client_hydrogen_self_check_validate_certificates: "{{ false if matrix_ssl_retrieval_method == 'self-signed' else true }}"
+
+######################################################################
+#
+# /matrix-client-hydrogen
 #
 ######################################################################
 
@@ -1643,11 +1745,6 @@ matrix_synapse_admin_container_self_build: "{{ matrix_architecture != 'amd64' }}
 
 matrix_prometheus_node_exporter_enabled: false
 
-# Normally, matrix-nginx-proxy is enabled and nginx can reach Prometheus Node Exporter over the container network.
-# If matrix-nginx-proxy is not enabled, or you otherwise have a need for it, you can expose
-# Prometheus' HTTP port to the local host.
-matrix_prometheus_node_exporter_container_http_host_bind_port: "{{ '' if matrix_nginx_proxy_enabled else '127.0.0.1:9100' }}"
-
 ######################################################################
 #
 # /matrix-prometheus-node-exporter
@@ -1674,6 +1771,11 @@ matrix_prometheus_scraper_synapse_targets: ['matrix-synapse:{{ matrix_synapse_me
 matrix_prometheus_scraper_synapse_rules_synapse_tag: "{{ matrix_synapse_docker_image_tag }}"
 
 matrix_prometheus_scraper_node_enabled: "{{ matrix_prometheus_node_exporter_enabled }}"
+matrix_prometheus_scraper_node_targets: "{{ ['matrix-prometheus-node-exporter:9100'] if matrix_prometheus_node_exporter_enabled else [] }}"
+
+matrix_prometheus_scraper_postgres_enabled: "{{ matrix_prometheus_postgres_exporter_enabled }}"
+matrix_prometheus_scraper_postgres_targets: "{{ ['matrix-prometheus-postgres-exporter:'+ matrix_prometheus_postgres_exporter_port|string] if matrix_prometheus_scraper_postgres_enabled else [] }}"
+
 
 ######################################################################
 #
@@ -1682,6 +1784,27 @@ matrix_prometheus_scraper_node_enabled: "{{ matrix_prometheus_node_exporter_enab
 ######################################################################
 
 
+######################################################################
+#
+# matrix-prometheus-postgres-exporter
+#
+######################################################################
+
+matrix_prometheus_postgres_exporter_enabled: false
+matrix_prometheus_postgres_exporter_database_password: "{{ matrix_synapse_macaroon_secret_key | password_hash('sha512', 'prometheus.pg.db') | to_uuid }}"
+
+matrix_prometheus_postgres_exporter_systemd_required_services_list: |
+  {{
+    ['docker.service']
+    +
+    (['matrix-postgres.service'] if matrix_postgres_enabled else [])
+  }}
+
+######################################################################
+#
+# /matrix-prometheus-postgres-exporter
+#
+######################################################################
 
 ######################################################################
 #
@@ -1695,6 +1818,14 @@ matrix_grafana_enabled: false
 # If matrix-nginx-proxy is not enabled, or you otherwise have a need for it, you can expose
 # Grafana's HTTP port to the local host.
 matrix_grafana_container_http_host_bind_port: "{{ '' if matrix_nginx_proxy_enabled else '127.0.0.1:3000' }}"
+
+matrix_grafana_dashboard_download_urls_all: |
+  {{
+    matrix_grafana_dashboard_download_urls
+    +
+    (matrix_prometheus_postgres_exporter_dashboard_urls if matrix_prometheus_postgres_exporter_enabled else [])
+  }}
+
 
 ######################################################################
 #
@@ -1741,5 +1872,34 @@ matrix_registration_database_password: "{{ matrix_synapse_macaroon_secret_key | 
 ######################################################################
 #
 # /matrix-registration
+#
+######################################################################
+
+######################################################################
+#
+# matrix-postgres-backup
+#
+######################################################################
+
+matrix_postgres_backup_connection_hostname: "{{ matrix_postgres_connection_hostname }}"
+matrix_postgres_backup_connection_port: "{{ matrix_postgres_connection_port }}"
+matrix_postgres_backup_connection_username: "{{ matrix_postgres_connection_username }}"
+matrix_postgres_backup_connection_password: "{{ matrix_postgres_connection_password }}"
+
+matrix_postgres_backup_postgres_data_path: "{{ matrix_postgres_data_path if matrix_postgres_enabled else '' }}"
+
+# the default matrix synapse databse is not always part of the matrix_postgres_additional_databases variable thus we have to add it if the default database is used
+matrix_postgres_backup_databases: |
+  {{
+    (([{
+        'name': matrix_synapse_database_database
+    }] if (matrix_synapse_enabled and matrix_synapse_database_database == matrix_postgres_db_name and matrix_synapse_database_host == 'matrix-postgres') else [])
+    +
+    matrix_postgres_additional_databases)|map(attribute='name')|list
+  }}
+
+######################################################################
+#
+# /matrix-postgres-backup
 #
 ######################################################################

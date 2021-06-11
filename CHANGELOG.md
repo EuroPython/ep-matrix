@@ -1,3 +1,55 @@
+# 2021-05-21
+
+## Hydrogen support
+
+Thanks to [Aaron Raimist](https://github.com/aaronraimist), the playbook now supports [Hydrogen](https://github.com/vector-im/hydrogen-web) - a new lightweight matrix client with legacy and mobile browser support.
+
+By default, we still install Element, as Hydrogen is still not fully-featured. Still, people who'd like to try Hydrogen out can now install it via the playbook.
+
+Additional details are available in [Setting up Hydrogen](docs/configuring-playbook-client-hydrogen.md).
+
+
+# 2021-05-19
+
+## Heisenbridge support
+
+Thanks to [Toni Spets (hifi)](https://github.com/hifi), the playbook now supports bridging to [IRC](https://en.wikipedia.org/wiki/Internet_Relay_Chat) using yet another bridge (besides matrix-appservice-irc), called [Heisenbridge](https://github.com/hifi/heisenbridge).
+
+Additional details are available in [Setting up Heisenbridge bouncer-style IRC bridging](docs/configuring-playbook-bridge-heisenbridge.md).
+
+
+# 2021-04-16
+
+## Disabling TLSv1 and TLSv1.1 for Coturn
+
+To improve security, we've [removed TLSv1 and TLSv1.1 support](https://github.com/spantaleev/matrix-docker-ansible-deploy/pull/999) from our default [Coturn](https://github.com/coturn/coturn) configuration.
+
+If you need to support old clients, you can re-enable both (or whichever one you need) with the following configuration:
+
+```yaml
+matrix_coturn_tls_v1_enabled: true
+matrix_coturn_tls_v1_1_enabled: true
+```
+
+
+# 2021-04-05
+
+## Automated local Postgres backup support
+
+Thanks to [foxcris](https://github.com/foxcris), the playbook can now make automated local Postgres backups on a fixed schedule using [docker-postgres-backup-local](https://github.com/prodrigestivill/docker-postgres-backup-local).
+
+Additional details are available in [Setting up postgres backup](docs/configuring-playbook-postgres-backup.md).
+
+
+
+# 2021-04-03
+
+## Mjolnir moderation tool (bot) support
+
+Thanks to [Aaron Raimist](https://github.com/aaronraimist), the playbook can now install and configure the [Mjolnir](https://github.com/matrix-org/mjolnir) moderation tool (bot).
+
+Additional details are available in [Setting up Mjolnir](docs/configuring-playbook-bot-mjolnir.md).
+
 
 # 2021-03-20
 

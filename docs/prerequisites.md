@@ -20,8 +20,6 @@ If your distro runs within an [LXC container](https://linuxcontainers.org/), you
 
 - The [Ansible](http://ansible.com/) program being installed on your own computer. It's used to run this playbook and configures your server for you. Take a look at [our guide about Ansible](ansible.md) for more information, as well as [version requirements](ansible.md#supported-ansible-versions) and alternative ways to run Ansible.
 
-- Either the `dig` tool or `python-dns` installed on your own computer. Used later on, by the playbook's [services check](maintenance-checking-services.md) feature.
-
 - An HTTPS-capable web server at the base domain name (`<your-domain>`) which is capable of serving static files. Unless you decide to [Serve the base domain from the Matrix server](configuring-playbook-base-domain-serving.md) or alternatively, to use DNS SRV records for [Server Delegation](howto-server-delegation.md).
 
 - Properly configured DNS records for `<your-domain>` (details in [Configuring DNS](configuring-dns.md)).
@@ -36,7 +34,6 @@ If your distro runs within an [LXC container](https://linuxcontainers.org/), you
   - `5349/udp`: TURN over UDP (used by Coturn)
   - `8448/tcp`: Matrix Federation API HTTPS webserver. In some cases, this **may necessary even with federation disabled**. Integration Servers (like Dimension) and Identity Servers (like ma1sd) may need to access `openid` APIs on the federation port.
   - the range `49152-49172/udp`: TURN over UDP
-  - `4443/tcp`: Jitsi Harvester fallback
-  - `10000/udp`: Jitsi video RTP. Depending on your firewall/NAT setup, incoming RTP packets on port `10000` may have the external IP of your firewall as destination address, due to the usage of STUN in JVB (see [`matrix_jitsi_jvb_stun_servers`](../roles/matrix-jitsi/defaults/main.yml)).
+  - potentially some other ports, depending on the additional (non-default) services that you enable in the **configuring the playbook** step (later on). Consult each service's documentation page in `docs/` for that.
 
 When ready to proceed, continue with [Configuring DNS](configuring-dns.md).
