@@ -18,7 +18,7 @@ def get_rooms(access_token, resolve_aliases=False, base_url=BASE_URL):
 
     If `resolve_aliases` is True, return a mapping of room ID to room alias.
     """
-    assert access_token is not None, 'access token is required'
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
 
     auth_header = {'Authorization': f'Bearer {access_token}'}
     r = requests.get(f'{base_url}/_matrix/client/r0/joined_rooms',
@@ -39,7 +39,7 @@ def resolve_room_alias(room_id, access_token, base_url=BASE_URL):
     """
     Translate a room ID into its alias.
     """
-    assert access_token is not None, 'access token is required'
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
 
     auth_header = {'Authorization': f'Bearer {access_token}'}
     r = requests.get(
@@ -69,7 +69,7 @@ def get_room_power_levels(room_id, user_id, access_token, base_url=BASE_URL):
     If `user_id` is spedified, simply return the power level for that user in
     that room or None is that user is not in the room.
     """
-    assert access_token is not None, 'access token is required'
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
 
     auth_header = {'Authorization': f'Bearer {access_token}'}
     r = requests.get(f'{base_url}/_matrix/client/r0/rooms/{room_id}/state' +
@@ -90,7 +90,7 @@ def set_user_room_power_level(user_id, room_id, level, access_token,
 
     Return the new level. Raise on failure.
     """
-    assert access_token is not None, 'access token is required'
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
 
     # Get all power levels for the room
     room_levels = get_room_power_levels(room_id=room_id,
