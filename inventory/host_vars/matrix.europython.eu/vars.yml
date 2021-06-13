@@ -55,7 +55,8 @@ matrix_dimension_enabled: true
 matrix_dimension_access_token: "{{ secrets_matrix_dimension_access_token }}"
 matrix_dimension_admins:
   - "@fp39304:europython.eu" 
-  # - "@malemburg:europython.eu"
+  - "@malemburg:europython.eu"
+  - "@rd38812:europython.eu"
   # - "@mc56315:europython.eu" 
   # - "@ladybiss:europython.eu" 
   # - "@sm6xmm:europython.eu" 
