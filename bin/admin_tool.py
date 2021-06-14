@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+"""
+Matrix administration tool.
+
+A note on authentication/access tokens. The actions performed by this script
+require authentication against the given Matrix server (as specified by the
+optional --base_url flag and defaulting to the EuroPython server).
+
+Authentication is performed using an access token which needs to be either
+passed to the script on the commandline (use the --access_token flag) or by
+defining an environment variable called $MATRIX_ACCESS_TOKEN.
+
+You can find your access token either in Element or programmatically (see
+https://webapps.stackexchange.com/questions/131056).
+"""
 import argparse
 import json
 import os
@@ -109,6 +123,44 @@ def set_user_room_power_level(user_id, room_id, level, access_token,
     new_level = get_room_power_levels(room_id, user_id, access_token, base_url)
     assert new_level == level
     return level
+
+
+def set_user_room_power_level_batch(users_levels, room_id, access_token,
+                                    base_url=BASE_URL):
+    """
+    Given a mapping of {user_id: power_level} and a room_id, set the power
+    level of these users according to the mapping. This WILL fail if any of the
+    users already has a power level >= to yours.
+
+    Return the new mapping.
+    """
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
+
+    # Get all power levels for the room
+    room_levels = get_room_power_levels(room_id=room_id,
+                                        user_id=None,
+                                        access_token=access_token,
+                                        base_url=base_url)
+    original_levels = dict(**room_levels['users'])
+    room_levels['users'].update(users_levels)
+
+    # Is there any difference?
+    if room_levels['users'] == original_levels:
+        return original_levels
+
+    auth_header = {'Authorization': f'Bearer {access_token}'}
+    r = requests.put(f'{base_url}/_matrix/client/r0/rooms/{room_id}/state' +
+                     '/m.room.power_levels/',
+                     headers=auth_header,
+                     data=json.dumps(room_levels))
+    r.raise_for_status()
+
+    new_level_dict = get_room_power_levels(room_id, None, access_token,
+                                           base_url)
+    new_level_dict = new_level_dict['users']
+    for user_id, level in users_levels.items():
+        assert new_level_dict.get(user_id, None) == level
+    return new_level_dict
 
 
 if __name__ == '__main__':
