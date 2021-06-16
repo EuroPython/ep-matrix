@@ -17,3 +17,4 @@
 
 [matrix_servers]
 matrix.europython.eu ansible_host=94.130.212.220 ansible_ssh_user=root ansible_python_interpreter=/usr/bin/python3
+matrix.europython.io ansible_host=162.55.165.196 ansible_ssh_user=root ansible_python_interpreter=/usr/bin/python3

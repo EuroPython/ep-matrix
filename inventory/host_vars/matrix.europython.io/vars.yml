@@ -8,7 +8,7 @@
 # because you can't change the Domain after deployment.
 #
 # Example value: example.com
-matrix_domain: europython.eu
+matrix_domain: europython.io
 
 # This is something which is provided to Let's Encrypt when retrieving SSL certificates for domains.
 #
@@ -44,7 +44,7 @@ matrix_synapse_admin_enabled: true
 # Enable epcon authentication
 matrix_synapse_ext_password_provider_epcon_auth_enabled: true
 matrix_synapse_ext_password_provider_epcon_auth_endpoint: 'https://epstage.europython.eu/api/v1/isauth/'
-matrix_synapse_ext_password_provider_epcon_auth_admin_user: '@fp39304:europython.eu'
+matrix_synapse_ext_password_provider_epcon_auth_admin_user: '@fp39304:europython.io'
 
 # Not sure why we need these rate limiters...
 matrix_synapse_rc_joins:
@@ -56,14 +56,14 @@ matrix_synapse_rc_joins:
 matrix_dimension_enabled: true
 matrix_dimension_access_token: "{{ secrets_matrix_dimension_access_token }}"
 matrix_dimension_admins:
-  - "@fp39304:europython.eu" 
-  - "@malemburg:europython.eu"
-  - "@rd38812:europython.eu"
-  # - "@mc56315:europython.eu" 
-  # - "@ladybiss:europython.eu" 
-  # - "@sm6xmm:europython.eu" 
-  # - "@ch34964:europython.eu" 
-  # - "@85054441ee:europython.eu"
+  - "@fp39304:europython.io" 
+  # - "@malemburg:europython.io"
+  # - "@rd38812:europython.io"
+  # - "@mc56315:europython.io" 
+  # - "@ladybiss:europython.io" 
+  # - "@sm6xmm:europython.io" 
+  # - "@ch34964:europython.io" 
+  # - "@85054441ee:europython.io"
 
 # custom Europython element client.
 matrix_client_element_docker_image: "europython/europython-element-web"
