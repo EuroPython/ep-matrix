@@ -49,6 +49,46 @@ def get_rooms(access_token, resolve_aliases=False, base_url=BASE_URL):
     return rooms
 
 
+def set_room_name(access_token, room_id, name, base_url=BASE_URL):
+    """
+    Set the given room a human friendly name.
+
+    This is not an alias: it is a fiendly name displayed in the UI.
+
+    Return the asigned name.
+    """
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
+
+    auth_header = {'Authorization': f'Bearer {access_token}'}
+    r = requests.put(f'{base_url}/_matrix/client/r0/rooms/{room_id}/state' +
+                     '/m.room.name/',
+                     headers=auth_header,
+                     data=json.dumps({'name': name}))
+    r.raise_for_status()
+    return get_room_name(access_token, room_id, base_url)
+
+
+def get_room_name(access_token, room_id, base_url=BASE_URL):
+    """
+    GSet the given room's human friendly name, if any.
+
+    This is not an alias: it is a fiendly name displayed in the UI.
+
+    Return the currently assigned name, if any.
+    """
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
+
+    auth_header = {'Authorization': f'Bearer {access_token}'}
+    r = requests.get(f'{base_url}/_matrix/client/r0/rooms/{room_id}/state' +
+                     '/m.room.name/',
+                     headers=auth_header)
+    if r.status_code == 404:
+        # The room never got a name
+        return ''
+    r.raise_for_status()
+    return r.json()['name']
+
+
 def resolve_room_alias(room_id, access_token, base_url=BASE_URL):
     """
     Translate a room ID into its alias.
@@ -233,6 +273,33 @@ if __name__ == '__main__':
     )
     resolve_room_alias_parser.add_argument('room_id', help='room id')
     resolve_room_alias_parser.set_defaults(func=resolve_room_alias)
+
+    get_room_name_parser = subparsers.add_parser('get_room_name',
+                                                 help='room id -> name')
+    get_room_name_parser.add_argument('--base_url', default=BASE_URL)
+    get_room_name_parser.add_argument(
+        '--access_token', help='access token (when needed)',
+        default=os.environ.get('MATRIX_ACCESS_TOKEN', '')
+    )
+    get_room_name_parser.add_argument('room_id', help='room id')
+    get_room_name_parser.set_defaults(func=get_room_name)
+
+    set_room_name_parser = subparsers.add_parser(
+        'set_room_name',
+        help='set a human friendly name for a room'
+    )
+    set_room_name_parser.add_argument('--base_url', default=BASE_URL)
+    set_room_name_parser.add_argument(
+        '--access_token', help='access token (when needed)',
+        default=os.environ.get('MATRIX_ACCESS_TOKEN', '')
+    )
+    set_room_name_parser.add_argument(
+        '--room_id',  '-r', help='room ID', required=True
+    )
+    set_room_name_parser.add_argument(
+        'name', help='a firendly name for your room'
+    )
+    set_room_name_parser.set_defaults(func=set_room_name)
 
     args = parser.parse_args()
     if not vars(args):
