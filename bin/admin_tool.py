@@ -13,20 +13,21 @@ defining an environment variable called $MATRIX_ACCESS_TOKEN.
 You can find your access token either in Element or programmatically (see
 https://webapps.stackexchange.com/questions/131056).
 """
-import argparse
 import json
 import os
-import sys
 from urllib.parse import quote
+import click
 import requests
 
 
 BASE_URL = 'https://matrix.europython.eu'
+ACCESS_TOKEN = os.environ.get('MATRIX_ACCESS_TOKEN', None)
 
 
-# Get list of room on the server I have joined.
 def get_rooms(access_token, resolve_aliases=False, base_url=BASE_URL):
     """
+    Return the server rooms.
+
     Return the list of room IDs that the user corresponding to `access_token`
     is a member of.
 
@@ -47,6 +48,38 @@ def get_rooms(access_token, resolve_aliases=False, base_url=BASE_URL):
     for _id in room_ids:
         rooms[_id] = resolve_room_alias(_id, access_token, base_url)
     return rooms
+
+
+def set_room_topic(access_token, room_id, topic, base_url=BASE_URL):
+    """
+    Set the given room a topic. Return the asigned topic.
+    """
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
+
+    auth_header = {'Authorization': f'Bearer {access_token}'}
+    r = requests.put(f'{base_url}/_matrix/client/r0/rooms/{room_id}/state' +
+                     '/m.room.topic/',
+                     headers=auth_header,
+                     data=json.dumps({'topic': topic}))
+    r.raise_for_status()
+    return get_room_topic(access_token, room_id, base_url)
+
+
+def get_room_topic(access_token, room_id, base_url=BASE_URL):
+    """
+    Get the given room's topic.
+    """
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
+
+    auth_header = {'Authorization': f'Bearer {access_token}'}
+    r = requests.get(f'{base_url}/_matrix/client/r0/rooms/{room_id}/state' +
+                     '/m.room.topic/',
+                     headers=auth_header)
+    if r.status_code == 404:
+        # The room never got a topic
+        return ''
+    r.raise_for_status()
+    return r.json()['topic']
 
 
 def set_room_name(access_token, room_id, name, base_url=BASE_URL):
@@ -70,7 +103,7 @@ def set_room_name(access_token, room_id, name, base_url=BASE_URL):
 
 def get_room_name(access_token, room_id, base_url=BASE_URL):
     """
-    GSet the given room's human friendly name, if any.
+    Get the given room's human friendly name.
 
     This is not an alias: it is a fiendly name displayed in the UI.
 
@@ -91,7 +124,7 @@ def get_room_name(access_token, room_id, base_url=BASE_URL):
 
 def resolve_room_alias(room_id, access_token, base_url=BASE_URL):
     """
-    Translate a room ID into its alias.
+    Return the room alias given its ID.
     """
     assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
 
@@ -117,6 +150,8 @@ def resolve_room_id(room_alias, base_url=BASE_URL):
 
 def get_room_power_levels(room_id, user_id, access_token, base_url=BASE_URL):
     """
+    Get user power levels in a room.
+
     Given a room ID (you are a member of) return the dict of the room power
     levels. Can be used to get a list of users in that room as well.
 
@@ -137,7 +172,7 @@ def get_room_power_levels(room_id, user_id, access_token, base_url=BASE_URL):
 def set_user_room_power_level(user_id, room_id, level, access_token,
                               base_url=BASE_URL):
     """
-    Change the power level of `user_id` in `room_id`.
+    Change the user power level in a room.
 
     This WILL fail if your power level is <= to the one `user_id` currently
     holds in `room_id`.
@@ -204,109 +239,98 @@ def set_user_room_power_level_batch(users_levels, room_id, access_token,
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(title='subcommands',
-                                       description='valid subcommands')
+    @click.command(name='get_rooms')
+    @click.option('--access_token', help='access token', default=ACCESS_TOKEN)
+    @click.option('--resolve_aliases', is_flag=True)
+    @click.option('--base_url', default=BASE_URL)
+    def cli_get_rooms(access_token, resolve_aliases=False, base_url=BASE_URL):
+        """Return the server rooms."""
+        click.echo(get_rooms(access_token, resolve_aliases, base_url))
 
-    # The power_level subcommands
-    get_power_level_parser = subparsers.add_parser(
-        'get_power_level',
-        help='get power level(s) for users/rooms'
-    )
-    get_power_level_parser.add_argument('--base_url', default=BASE_URL)
-    get_power_level_parser.add_argument(
-        '--access_token', help='access token (when needed)',
-        default=os.environ.get('MATRIX_ACCESS_TOKEN', '')
-    )
-    get_power_level_parser.add_argument(
-        '--room_id',  '-r', help='room ID', required=True
-    )
-    get_power_level_parser.add_argument(
-        '--user_id', '-u', help='username', default=None, required=False
-    )
-    get_power_level_parser.set_defaults(func=get_room_power_levels)
+    @click.command(name='set_room_name')
+    @click.option('--access_token', help='access token', default=ACCESS_TOKEN)
+    @click.option('--room_id',  '-r', help='room ID', required=True)
+    @click.option('--base_url', default=BASE_URL)
+    @click.argument('name')
+    def cli_set_room_name(access_token, room_id, name, base_url=BASE_URL):
+        """Set the given room a human friendly name."""
+        click.echo(set_room_name(access_token, room_id, name, base_url))
 
-    set_power_level_parser = subparsers.add_parser(
-        'set_power_level',
-        help='set power level for users/rooms'
-    )
-    set_power_level_parser.add_argument('--base_url', default=BASE_URL)
-    set_power_level_parser.add_argument(
-        '--access_token', help='access token (when needed)',
-        default=os.environ.get('MATRIX_ACCESS_TOKEN', '')
-    )
-    set_power_level_parser.add_argument(
-        '--room_id',  '-r', help='room ID', required=True
-    )
-    set_power_level_parser.add_argument(
-        '--user_id', '-u', help='username', required=True
-    )
-    set_power_level_parser.add_argument(
-        'level', type=int, help='0 <= power_level <= 100'
-    )
-    set_power_level_parser.set_defaults(func=set_user_room_power_level)
+    @click.command(name='get_room_name')
+    @click.option('--access_token', help='access token', default=ACCESS_TOKEN)
+    @click.option('--base_url', default=BASE_URL)
+    @click.argument('room_id')
+    def cli_get_room_name(access_token, room_id, base_url=BASE_URL):
+        """Get the given room's human friendly name."""
+        click.echo(get_room_name(access_token, room_id, base_url))
 
-    # Room list/info subcommands
-    get_rooms_parser = subparsers.add_parser('get_rooms', help='list rooms')
-    get_rooms_parser.add_argument('--base_url', default=BASE_URL)
-    get_rooms_parser.add_argument(
-        '--access_token', help='access token (when needed)',
-        default=os.environ.get('MATRIX_ACCESS_TOKEN', '')
-    )
-    get_rooms_parser.add_argument(
-        '--resolve_aliases', action='store_true', default=False
-    )
-    get_rooms_parser.set_defaults(func=get_rooms)
+    @click.command(name='set_room_topic')
+    @click.option('--access_token', help='access token', default=ACCESS_TOKEN)
+    @click.option('--room_id',  '-r', help='room ID', required=True)
+    @click.option('--base_url', default=BASE_URL)
+    @click.argument('topic')
+    def cli_set_room_topic(access_token, room_id, topic, base_url=BASE_URL):
+        """Set the given room a human friendly topic."""
+        click.echo(set_room_topic(access_token, room_id, topic, base_url))
 
-    resolve_room_id_parser = subparsers.add_parser('resolve_room_id',
-                                                   help='room alias -> id')
-    resolve_room_id_parser.add_argument('--base_url', default=BASE_URL)
-    resolve_room_id_parser.add_argument('room_alias', help='room alias')
-    resolve_room_id_parser.set_defaults(func=resolve_room_id)
+    @click.command(name='get_room_topic')
+    @click.option('--access_token', help='access token', default=ACCESS_TOKEN)
+    @click.option('--base_url', default=BASE_URL)
+    @click.argument('room_id')
+    def cli_get_room_topic(access_token, room_id, base_url=BASE_URL):
+        """Get the given room's human friendly topic."""
+        click.echo(get_room_topic(access_token, room_id, base_url))
 
-    resolve_room_alias_parser = subparsers.add_parser('resolve_room_alias',
-                                                      help='room id -> alias')
-    resolve_room_alias_parser.add_argument('--base_url', default=BASE_URL)
-    resolve_room_alias_parser.add_argument(
-        '--access_token', help='access token (when needed)',
-        default=os.environ.get('MATRIX_ACCESS_TOKEN', '')
-    )
-    resolve_room_alias_parser.add_argument('room_id', help='room id')
-    resolve_room_alias_parser.set_defaults(func=resolve_room_alias)
+    @click.command(name='resolve_room_alias')
+    @click.option('--access_token', help='access token', default=ACCESS_TOKEN)
+    @click.option('--base_url', default=BASE_URL)
+    @click.argument('room_id')
+    def cli_resolve_room_alias(room_id, access_token, base_url=BASE_URL):
+        """Return the room alias given its ID."""
+        click.echo(resolve_room_alias(room_id, access_token, base_url))
 
-    get_room_name_parser = subparsers.add_parser('get_room_name',
-                                                 help='room id -> name')
-    get_room_name_parser.add_argument('--base_url', default=BASE_URL)
-    get_room_name_parser.add_argument(
-        '--access_token', help='access token (when needed)',
-        default=os.environ.get('MATRIX_ACCESS_TOKEN', '')
-    )
-    get_room_name_parser.add_argument('room_id', help='room id')
-    get_room_name_parser.set_defaults(func=get_room_name)
+    @click.command(name='resolve_room_id')
+    @click.option('--base_url', default=BASE_URL)
+    @click.argument('room_alias')
+    def cli_resolve_room_id(room_alias, base_url=BASE_URL):
+        """Return the room ID given its alias."""
+        click.echo(resolve_room_id(room_alias, base_url))
 
-    set_room_name_parser = subparsers.add_parser(
-        'set_room_name',
-        help='set a human friendly name for a room'
-    )
-    set_room_name_parser.add_argument('--base_url', default=BASE_URL)
-    set_room_name_parser.add_argument(
-        '--access_token', help='access token (when needed)',
-        default=os.environ.get('MATRIX_ACCESS_TOKEN', '')
-    )
-    set_room_name_parser.add_argument(
-        '--room_id',  '-r', help='room ID', required=True
-    )
-    set_room_name_parser.add_argument(
-        'name', help='a firendly name for your room'
-    )
-    set_room_name_parser.set_defaults(func=set_room_name)
+    @click.command(name='get_room_power_levels')
+    @click.option('--access_token', help='access token', default=ACCESS_TOKEN)
+    @click.option('--room_id',  '-r', help='room ID', required=True)
+    @click.option('--user_id', '-u', help='username', default=None)
+    @click.option('--base_url', default=BASE_URL)
+    def cli_get_room_power_levels(room_id, user_id, access_token,
+                                  base_url=BASE_URL):
+        """Get user power levels in a room."""
+        click.echo(get_room_power_levels(room_id, user_id, access_token,
+                                         base_url))
 
-    args = parser.parse_args()
-    if not vars(args):
-        parser.print_help()
-        sys.exit(1)
+    @click.command(name='set_user_room_power_level')
+    @click.option('--access_token', help='access token', default=ACCESS_TOKEN)
+    @click.option('--room_id',  '-r', help='room ID', required=True)
+    @click.option('--user_id', '-u', help='username', required=True)
+    @click.option('--base_url', default=BASE_URL)
+    @click.argument('level', type=int)
+    def cli_set_user_room_power_level(user_id, room_id, level, access_token,
+                                      base_url=BASE_URL):
+        """Change the user power level in a room."""
+        click.echo(set_user_room_power_level(user_id, room_id, level,
+                                             access_token, base_url))
 
-    args = vars(args)
-    if 'func' in args:
-        fn = args.pop('func')
-        print(fn(**args))
+    @click.group()
+    def cli():
+        ...
+
+    cli.add_command(cli_get_rooms)
+    cli.add_command(cli_set_room_name)
+    cli.add_command(cli_get_room_name)
+    cli.add_command(cli_set_room_topic)
+    cli.add_command(cli_get_room_topic)
+    cli.add_command(cli_resolve_room_alias)
+    cli.add_command(cli_resolve_room_id)
+    cli.add_command(cli_get_room_power_levels)
+    cli.add_command(cli_set_user_room_power_level)
+
+    cli(standalone_mode=False)
