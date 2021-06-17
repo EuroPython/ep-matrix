@@ -67,6 +67,7 @@ matrix_dimension_admins:
 
 # custom Europython element client.
 matrix_client_element_docker_image: "europython/europython-element-web"
+matrix_client_element_docker_image_force_pull: true
 
 # Let's extend the synapse config to add our own custom rules.
 matrix_synapse_container_additional_volumes: 
