@@ -43,7 +43,7 @@ matrix_synapse_admin_enabled: true
 
 # Enable epcon authentication
 matrix_synapse_ext_password_provider_epcon_auth_enabled: true
-matrix_synapse_ext_password_provider_epcon_auth_endpoint: 'https://epstage.europython.eu/api/v1/isauth/'
+matrix_synapse_ext_password_provider_epcon_auth_endpoint: 'https://ep2021.europython.eu/api/v1/isauth/'
 matrix_synapse_ext_password_provider_epcon_auth_admin_user: '@fp39304:europython.eu'
 
 # Not sure why we need these rate limiters...
