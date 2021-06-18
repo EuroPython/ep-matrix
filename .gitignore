@@ -7,3 +7,5 @@
 .python-version
 *~
 *.bak
+__pycache__/
+*.csv
