@@ -66,7 +66,7 @@ matrix_dimension_admins:
   # - "@85054441ee:europython.io"
 
 # custom Europython element client.
-matrix_client_element_docker_image: "europython/europython-element-web"
+matrix_client_element_docker_image: "europython/europython-element-web:latest"
 matrix_client_element_docker_image_force_pull: true
 
 # Let's extend the synapse config to add our own custom rules.
