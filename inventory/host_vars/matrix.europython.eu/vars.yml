@@ -64,6 +64,8 @@ matrix_dimension_admins:
   # - "@sm6xmm:europython.eu" 
   # - "@ch34964:europython.eu" 
   # - "@85054441ee:europython.eu"
+matrix_dimension_docker_image: "europython/europython-matrix-dimension:latest"
+matrix_dimension_docker_image_force_pull: true;
 
 # custom Europython element client.
 matrix_client_element_docker_image: "europython/europython-element-web:latest"
