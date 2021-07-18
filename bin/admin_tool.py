@@ -16,6 +16,7 @@ https://webapps.stackexchange.com/questions/131056).
 import json
 import os
 from urllib.parse import quote
+import warnings
 import click
 import requests
 
@@ -148,6 +149,21 @@ def resolve_room_id(room_alias, base_url=BASE_URL):
     return r.json()['room_id']
 
 
+def get_room_members(room_id, access_token, base_url=BASE_URL):
+    """
+    Return the list of members of a given room.
+
+    This is often needed because getting a room member powerlevels does NOT
+    return users with a powerlevel of 0 (the default value).
+    """
+    assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
+
+    auth_header = {'Authorization': f'Bearer {access_token}'}
+    r = requests.get(f'{base_url}/_synapse/admin/v1/rooms/{room_id}/members',
+                     headers=auth_header)
+    return r.json().get('members', [])
+
+
 def get_room_power_levels(room_id, user_id, access_token, base_url=BASE_URL):
     """
     Get user power levels in a room.
@@ -160,13 +176,27 @@ def get_room_power_levels(room_id, user_id, access_token, base_url=BASE_URL):
     """
     assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
 
+    # Get all members of that room.
+    members = get_room_members(room_id, access_token, base_url)
+
     auth_header = {'Authorization': f'Bearer {access_token}'}
     r = requests.get(f'{base_url}/_matrix/client/r0/rooms/{room_id}/state' +
                      '/m.room.power_levels/',
                      headers=auth_header)
+    user_power_dict = r.json()
+
     if user_id is None:
-        return r.json()
-    return r.json().get('users', {}).get(user_id, None)
+        # Return all power-levels. Agument with the ones in members but not in
+        # the response as they have power_level = 0.
+        for member in members:
+            if member not in user_power_dict['users']:
+                user_power_dict['users'][member] = 0
+        return user_power_dict
+    # Just return the power-level of the given user, if they are in the room.
+    if user_id in members:
+        return user_power_dict['users'].get(user_id, 0)
+    # User is not in the room: return None
+    return
 
 
 def set_user_room_power_level(user_id, room_id, level, access_token,
@@ -177,6 +207,8 @@ def set_user_room_power_level(user_id, room_id, level, access_token,
     This WILL fail if your power level is <= to the one `user_id` currently
     holds in `room_id`.
 
+    Only modify the level of users who are already in the room.
+
     Return the new level. Raise on failure.
     """
     assert access_token, 'access token is required (e.g. $MATRIX_ACCESS_TOKEN)'
@@ -186,6 +218,10 @@ def set_user_room_power_level(user_id, room_id, level, access_token,
                                         user_id=None,
                                         access_token=access_token,
                                         base_url=base_url)
+    if user_id not in room_levels:
+        warnings.warn(f'User {user_id} not in room {room_id}: nothing changed')
+        return
+
     room_levels['users'][user_id] = level
 
     auth_header = {'Authorization': f'Bearer {access_token}'}
@@ -201,11 +237,17 @@ def set_user_room_power_level(user_id, room_id, level, access_token,
 
 
 def set_user_room_power_level_batch(users_levels, room_id, access_token,
-                                    base_url=BASE_URL):
+                                    base_url=BASE_URL,
+                                    do_not_downgrade=True):
     """
     Given a mapping of {user_id: power_level} and a room_id, set the power
     level of these users according to the mapping. This WILL fail if any of the
     users already has a power level >= to yours.
+
+    Only modify the level of users who are already in the room.
+
+    If `do_not_downgrade` is True (the default value), do not lower any user
+    power level.
 
     Return the new mapping.
     """
@@ -217,7 +259,13 @@ def set_user_room_power_level_batch(users_levels, room_id, access_token,
                                         access_token=access_token,
                                         base_url=base_url)
     original_levels = dict(**room_levels['users'])
-    room_levels['users'].update(users_levels)
+
+    # Make sure to only affect the levels of users already in the room.
+    for user_id, current_level in room_levels['users'].items():
+        requested_level = users_levels.get(user_id, current_level)
+        if do_not_downgrade:
+            requested_level = max(requested_level, current_level)
+        room_levels['users'][user_id] = requested_level
 
     # Is there any difference?
     if room_levels['users'] == original_levels:
@@ -230,11 +278,10 @@ def set_user_room_power_level_batch(users_levels, room_id, access_token,
                      data=json.dumps(room_levels))
     r.raise_for_status()
 
+    # Double check
     new_level_dict = get_room_power_levels(room_id, None, access_token,
                                            base_url)
-    new_level_dict = new_level_dict['users']
-    for user_id, level in users_levels.items():
-        assert new_level_dict.get(user_id, None) == level
+    assert new_level_dict == room_levels
     return new_level_dict
 
 
