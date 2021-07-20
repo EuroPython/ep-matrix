@@ -14,7 +14,7 @@ class SuperRulesSet:
         return config
 
     async def on_create_room(self, requester, config, is_requester_admin):
-        return is_requester_admin
+        return config.get('is_direct', False) or is_requester_admin
 
     async def check_event_allowed(self, event: EventBase,
                                   state_events: StateMap[EventBase]) -> bool:
