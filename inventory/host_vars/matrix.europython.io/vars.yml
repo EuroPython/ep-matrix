@@ -71,6 +71,12 @@ matrix_dimension_docker_image_force_pull: true
 matrix_client_element_docker_image: "europython/europython-element-web:latest"
 matrix_client_element_docker_image_force_pull: true
 
+# Branding of the element UI
+matrix_client_element_welcome_logo_link: "https://ep2021.europython.eu"
+matrix_client_element_welcome_logo: "https://ep2021.europython.eu/media/filer_public/d2/dd/d2dd4060-f25a-42e6-9ffc-e98d062e3022/ep2021-logo-device.svg"
+matrix_client_element_welcome_headline: "Welcome to EuroPython 2021"
+matrix_client_element_welcome_text: "The EuroPython 2021 Conference system is powered by [matrix]"
+
 # Let's extend the synapse config to add our own custom rules.
 matrix_synapse_container_additional_volumes: 
   - src: "{{ europython_synapse_packages_volume }}/epmatrix"
