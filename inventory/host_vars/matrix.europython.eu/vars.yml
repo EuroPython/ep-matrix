@@ -41,6 +41,9 @@ matrix_docker_installation_enabled: false
 # The admin
 matrix_synapse_admin_enabled: true
 
+# Scale it
+matrix_synapse_workers_enabled: true
+
 # Enable epcon authentication
 matrix_synapse_ext_password_provider_epcon_auth_enabled: true
 matrix_synapse_ext_password_provider_epcon_auth_endpoint: 'https://ep2021.europython.eu/api/v1/isauth/'
