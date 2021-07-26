@@ -347,14 +347,14 @@ matrix_synapse_workers_presets:
     user_dir_workers_count: 0
     frontend_proxy_workers_count: 0
   one-of-each:
-    generic_workers_count: 1
+    generic_workers_count: 16
     pusher_workers_count: 1
     appservice_workers_count: 1
     federation_sender_workers_count: 1
     media_repository_workers_count: 1
     # Disabled until https://github.com/matrix-org/synapse/issues/8787 is resolved.
     user_dir_workers_count: 0
-    frontend_proxy_workers_count: 1
+    frontend_proxy_workers_count: 2
 
 # Controls whether the matrix-synapse container exposes the various worker ports
 # (see `port` and `metrics_port` in `matrix_synapse_workers_enabled_list`) outside of the container.

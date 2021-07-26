@@ -43,6 +43,9 @@ matrix_synapse_admin_enabled: true
 
 # Scale it 
 matrix_synapse_workers_enabled: true
+matrix_postgres_process_extra_arguments: [
+  "-c 'max_connections=300'"
+]
 
 # Enable epcon authentication
 matrix_synapse_ext_password_provider_epcon_auth_enabled: true
