@@ -347,7 +347,7 @@ matrix_synapse_workers_presets:
     user_dir_workers_count: 0
     frontend_proxy_workers_count: 0
   one-of-each:
-    generic_workers_count: 16
+    generic_workers_count: 32
     pusher_workers_count: 1
     appservice_workers_count: 1
     federation_sender_workers_count: 1
