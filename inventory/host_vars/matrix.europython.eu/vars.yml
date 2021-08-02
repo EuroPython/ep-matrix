@@ -44,13 +44,23 @@ matrix_synapse_admin_enabled: true
 # Scale it
 matrix_synapse_workers_enabled: true
 matrix_postgres_process_extra_arguments: [
-  "-c 'max_connections=500'"
+  "-c 'max_connections=500'",
+  "-c shared_buffers=2GB",
+  "-c effective_cache_size=6GB",
+  "-c maintenance_work_mem=512MB",
+  "-c wal_buffers=16MB",
+  "-c work_mem=5242kB",
+  "-c min_wal_size=1GB",
+  "-c max_wal_size=4GB",
 ]
 matrix_nginx_proxy_worker_processes: "auto"
 matrix_nginx_proxy_worker_connections: 2048
 
 # Disable presence to speed things up a bit
-matrix_synapse_presence_enabled: false
+matrix_synapse_presence_enabled: true
+
+# Disable nginx logs to be able to use /var/log/syslog for any debugging
+matrix_nginx_proxy_access_log_enabled: false
 
 # Metrics
 matrix_prometheus_enabled: true
